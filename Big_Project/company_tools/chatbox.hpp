@@ -2,7 +2,8 @@
 #define chatbox_hpp
 
 #include<bits/stdc++.h>
-#include<./entities/characters.hpp>
+#include"../entities/characters.hpp"
+using namespace std;
 
 class ChatBox {
     public: 

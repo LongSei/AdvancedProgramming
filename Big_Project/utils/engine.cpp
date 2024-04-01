@@ -1,77 +1,73 @@
 #include "engine.hpp"
 using namespace std;
 
-Game::Game(){}
-Game::~Game(){}
-
-void Game::logErrorAndExit(const char* msg, const char* error) {
-    SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR, "%s: %s", msg, error);
-    SDL_Quit();
-}
-
 void Game::init(bool IS_FULLSCREEN, int SCREEN_WIDTH, int SCREEN_HEIGHT, const char* WINDOW_TITLE) {
     isRunning = false;
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-        cout << "SDL_Init" << " " << SDL_GetError() << endl;
-    }
-
     int SCREEN_STATUS = IS_FULLSCREEN ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_SHOWN;
-
-
-    window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_STATUS);
-    if (window == nullptr) {
-        cout << "CreateWindow" << " " << SDL_GetError() << endl;
-    }
-    else {
-        cout << "Creating Window Successfully" << endl;
+    // SDL2 Creating
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+        SDL_Quit();
+        return;
     }
 
-    int RENDERING_INDEX = -1;
-    renderer = SDL_CreateRenderer(window, RENDERING_INDEX, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (renderer == nullptr) {
-        cout << "CreateRenderer" << " " << SDL_GetError() << endl;
+    // Image Loader Creating
+    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
+        SDL_Log("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+        SDL_Quit();
+        return;
     }
-    else {
-        cout << "Creating Renderer Successfully" << endl;
+
+    // Game Window Creating
+    window = SDL_CreateWindow(WINDOW_TITLE,
+                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                          SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_STATUS);
+    if (!window) {
+        SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());
+        IMG_Quit();
+        SDL_Quit();
+        return;
     }
+
+    // Renderer Creating
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!renderer) {
+        SDL_Log("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        IMG_Quit();
+        SDL_Quit();
+        return;
+    }
+
+    startTime = SDL_GetTicks();
+    mainManager.init();
     isRunning = true;
+    mainManager.addNewEmployment("ceo", pair<int, int>(0,0), "None", renderer);
 }
 
-void Game::handleEvents() {
-    SDL_Event event;
-    SDL_PollEvent(&event);
-    switch (event.type) {
-        case SDL_QUIT:
+void Game::handleEvents(SDL_Event event) {
+    while (SDL_PollEvent(&event) != 0) {
+        cout << SDL_PollEvent(&event) << endl;
+        if (event.type == SDL_QUIT) {
             isRunning = false;
-            break;
-        
-        default:
-            break;
+        }
     }
 }
 
-void Game::update() {
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);   // white
-    SDL_RenderDrawPoint(renderer, 800/2, 600/2);
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);   // red
-    SDL_RenderDrawLine(renderer, 100, 100, 200, 200);
-    SDL_Rect filled_rect;
-    filled_rect.x = 800 - 400;
-    filled_rect.y = 600 - 150;
-    filled_rect.w = 320;
-    filled_rect.h = 100;
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // green
-    SDL_RenderFillRect(renderer, &filled_rect);
+void Game::renderUpdate() {
+    mainManager.render(startTime, renderer);
+    SDL_RenderPresent(renderer);
 }
 
-void Game::render() {
+void Game::renderClear() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
 }
 
 void Game::clean() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    IMG_Quit();
     SDL_Quit();
 }
 

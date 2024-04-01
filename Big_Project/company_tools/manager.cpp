@@ -1,19 +1,24 @@
-#include"./company_tools/manager.hpp"
+#include"../company_tools/manager.hpp"
 using namespace std;
 
-void Manager::addNewEmployment() {
+void EntitiesManager::init() {
+    employment.clear();
+    chatbox.clear();
+}
+
+void EntitiesManager::addNewEmployment(string position, pair<int, int> coordinate, string status, SDL_Renderer* renderer) {
     Characters* newEmploy = new Characters;
-    (*newEmploy).init("None");
+    (*newEmploy).init(position, coordinate, status, renderer);
     employment.push_back(newEmploy);
 }
 
-void Manager::addNewChatBox() {
+void EntitiesManager::addNewChatBox() {
     ChatBox* newChatBox = new ChatBox;
     (*newChatBox).init();
     chatbox.push_back(newChatBox);
 }
 
-void Manager::removeEmployment(Characters* emp) {
+void EntitiesManager::removeEmployment(Characters* emp) {
     auto it = find(employment.begin(), employment.end(), emp);
     if (it != employment.end()) {
         employment.erase(it);
@@ -22,11 +27,17 @@ void Manager::removeEmployment(Characters* emp) {
     }
 }
 
-void Manager::removeChatBox(ChatBox* box) {
+void EntitiesManager::removeChatBox(ChatBox* box) {
     auto it = find(chatbox.begin(), chatbox.end(), box);
     if (it != chatbox.end()) {
         chatbox.erase(it);
         delete box;
         box = nullptr;
+    }
+}
+
+void EntitiesManager::render(Uint32 GameStartTime, SDL_Renderer* renderer) {
+    for (auto character : employment) {
+        (*character).render(GameStartTime, renderer);
     }
 }

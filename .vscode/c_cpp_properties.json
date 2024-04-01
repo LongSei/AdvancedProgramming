@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/Library/Developer/CommandLineTools/usr/include/c++/v1"
+                // /Library/Developer/CommandLineTools/usr/lib/clang/14.0.3/include
             ],
             "defines": [],
             "macFrameworkPath": [

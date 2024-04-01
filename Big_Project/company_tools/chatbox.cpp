@@ -1,4 +1,4 @@
-#include"./company_tools/chatbox.hpp"
+#include"../company_tools/chatbox.hpp"
 using namespace std;
 
 void ChatBox::init() {
@@ -18,5 +18,7 @@ bool ChatBox::canMessage(Characters* emp) {
 }   
 
 void ChatBox::appendMessage(Characters* emp, string message) {
-    messageMemory.push_back(pair<Characters*, string>(emp, message));
+    if ((*this).isMember[emp] == true) {
+        messageMemory.push_back(pair<Characters*, string>(emp, message));
+    }
 }
