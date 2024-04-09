@@ -1,4 +1,5 @@
 #include"../company_tools/manager.hpp"
+#include"../constant.hpp"
 using namespace std;
 
 void EntitiesManager::init() {
@@ -8,7 +9,7 @@ void EntitiesManager::init() {
 
 void EntitiesManager::addNewEmployment(string image_directory, string position, SDL_Point coordinate, string status, SDL_Renderer* renderer) {
     Characters* newEmploy = new Characters;
-    (*newEmploy) = Characters(image_directory, position, coordinate, status, renderer);
+    (*newEmploy) = Characters(image_directory, position,  coordinate,  status, PLAYER_SPEED, renderer);
     employment.push_back(newEmploy);
 }
 

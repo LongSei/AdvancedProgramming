@@ -86,6 +86,7 @@
         "numeric": "cpp",
         "random": "cpp",
         "algorithm": "cpp",
-        "*.ds_store": "cpp"
+        "*.ds_store": "cpp",
+        "filesystem": "cpp"
     }
 }

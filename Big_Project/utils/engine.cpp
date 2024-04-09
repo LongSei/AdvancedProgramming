@@ -46,7 +46,7 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
     SCREEN_WIDTH = _SCREEN_WIDTH;
     SCREEN_TITLE = _SCREEN_TITLE;
     ScreenCamera = CameraScreen(renderer);
-    mainPlayer = Characters(player_directory,"ceo", {0,0}, "down", renderer);
+    mainPlayer = Characters(PLAYER_DIRECTORY,"ceo", PLAYER_SPAWNER, "down", PLAYER_SPEED, renderer);
 }
 
 void Game::createMap() {
@@ -69,26 +69,29 @@ void Game::createMap() {
 
     // Create Game_Map 
     for (const auto& [blockStyle, layout] : layouts) {
-        for (int row_index = 0; row_index < layout.size(); ++row_index) {
-            const auto& row = layout[row_index];
-            for (int col_index = 0; col_index < row.size(); ++col_index) {
-                const auto& col = row[col_index];
-                if (col != "-1") {
+        for (int col_index = 0; col_index < layout.size(); ++col_index) {
+            const auto& col = layout[col_index];
+            for (int row_index = 0; row_index < col.size(); ++row_index) {
+                const auto& row = col[row_index];
+                if (row != "-1") {
                     int x = col_index * TILESIZE;
                     int y = row_index * TILESIZE;
                     if (blockStyle == "map_FloorBlocks.csv") {
-                        Tile hitbox(NULL, "boundary", false, x, y);
-                        game_map[0][row_index][col_index] = hitbox;
+                        map<string, bool> groupCheck = {{"visible", false}, {"attackable", false}, {"walkon", false}};
+                        Tile hitbox = Tile(NULL, groupCheck, x, y);
+                        game_map[0][col_index][row_index] = hitbox;
                     }
                     else if (blockStyle == "map_Grass.csv") {
+                        map<string, bool> groupCheck = {{"visible", true}, {"attackable", false}, {"walkon", false}};
                         SDL_Texture* image = EssentialFunction().choice(graphics["grass"]);
-                        Tile hitbox(image, "grass", true, x, y);
-                        game_map[1][row_index][col_index] = hitbox;
+                        Tile hitbox = Tile(image, groupCheck, x, y);
+                        game_map[1][col_index][row_index] = hitbox;
                     }
                     else if (blockStyle == "map_Objects.csv") {
-                        SDL_Texture* image = EssentialFunction().choice(graphics["objects"]);
-                        Tile hitbox(image, "objects", true, x, y);
-                        game_map[2][row_index][col_index] = hitbox;
+                        map<string, bool> groupCheck = {{"visible", true}, {"attackable", false}, {"walkon", false}};
+                        SDL_Texture* image = graphics["objects"][row[0] - '0'];
+                        Tile hitbox = Tile(image, groupCheck, x, y);
+                        game_map[2][col_index][row_index] = hitbox;
                     }
                 }
             }
@@ -102,19 +105,30 @@ void Game::handleEvents(SDL_Event event) {
             isRunning = false;
         }
         if (event.type == SDL_KEYDOWN) {
+            SDL_Point pre_position = mainPlayer.coordinate;
             switch (event.key.keysym.sym) {
                 case SDLK_LEFT:
-                    mainPlayer.coordinate.x -= 64;
+                    mainPlayer.move("left");
                     break;
                 case SDLK_RIGHT:
-                    mainPlayer.coordinate.x += 64;
+                    mainPlayer.move("right");
                     break;
                 case SDLK_UP:
-                    mainPlayer.coordinate.y -= 64;
+                    mainPlayer.move("up");
                     break;
                 case SDLK_DOWN:
-                    mainPlayer.coordinate.y += 64;
+                    mainPlayer.move("down");
                     break;
+            }
+            vector<SDL_Point> collision = mainPlayer.getCollision();
+            for (SDL_Point& collisionCoordinate : collision) {
+                for (int layer = 0; layer <= 2; layer++) {
+                    Tile& tile = game_map[layer][collisionCoordinate.y / TILESIZE][collisionCoordinate.x / TILESIZE];
+                    if (tile.groupCheck["walkon"] == false) {
+                        mainPlayer.coordinate = pre_position;
+                        return;
+                    }
+                }
             }
         }
     }
@@ -163,16 +177,24 @@ void CameraScreen::customDraw(Characters& player, vector<map<int, map<int, Tile>
     SDL_Point playerCenter = player.getCenter();
     calculateVisibleArea(playerCenter);
     SDL_RenderCopy(renderer, floor_surf, &floor_rect, NULL);
-    player.render(renderer, half_screen);
+    player.render(renderer, {player.coordinate.x - floor_rect.x, player.coordinate.y - floor_rect.y});
 
     for (int layer = 0; layer <= 2; layer++) {
-        for (int row = max(0, floor_rect.y / TILESIZE); row <= min((floor_rect.y + floor_rect.h) / TILESIZE, static_cast<int>(game_map[layer].size()) - 1); row++) {
-            for (int col = max(0, floor_rect.x / TILESIZE); col <= min((floor_rect.x + floor_rect.w) / TILESIZE, static_cast<int>(game_map[layer][row].size()) - 1); col++) {
-                Tile& tile = game_map[layer][row][col];
-                if (tile.isShown == true) {
-                    SDL_Rect tileDest = {col * TILESIZE - floor_rect.x, row * TILESIZE - floor_rect.y, TILESIZE, TILESIZE};
-                    if (tileDest.x + TILESIZE > 0 && tileDest.x < floor_rect.w &&
-                        tileDest.y + TILESIZE > 0 && tileDest.y < floor_rect.h) {
+        for (auto& [rowIndex, rowValue] : game_map[layer]) {
+            for (auto& [colIndex, colValue] : rowValue) {
+                Tile& tile = colValue; 
+                int& row = tile.box.posX;
+                int& col = tile.box.posY;
+                
+                bool& visible = tile.groupCheck["visible"];
+                bool& walkon = tile.groupCheck["walkon"];
+                bool& attackable = tile.groupCheck["attackable"];
+
+                SDL_Rect tileDest = {col - floor_rect.x, row - floor_rect.y, TILESIZE, TILESIZE};
+
+                if (visible == true) {
+                    if (tileDest.x >= 0 && tileDest.x <= floor_rect.w &&
+                        tileDest.y >= 0 && tileDest.y <= floor_rect.h) {
                         SDL_RenderCopy(renderer, tile.image, NULL, &tileDest);
                     }
                 }

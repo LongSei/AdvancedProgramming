@@ -16,12 +16,11 @@ class Tile {
     public: 
         bool checkCollision(Tile& b);
         Tile();
-        Tile(SDL_Texture* _image, string _object_type, bool _isShown, int x, int y);
+        Tile(SDL_Texture* _image, map<string, bool>& groupCheck, int x, int y);
 
         SDL_Texture* image; 
-        string object_type; 
-        bool isShown;
         Grid box;
+        map<string, bool> groupCheck = {{"visible", false}, {"attackable", false}, {"walkon", true}};
 };
 
 #endif 

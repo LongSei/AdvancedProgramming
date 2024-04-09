@@ -15,5 +15,9 @@ const string backgroundMap = "./assets/graphics/tilemap/ground.png";
 const string list_layouts[] = {"./assets/map/map_FloorBlocks.csv", "./assets/map/map_Grass.csv", "./assets/map/map_Objects.csv", "./assets/map/map_Entities.csv"};
 const string list_graphics[] = {"./assets/graphics/grass", "./assets/graphics/objects"};
 const Uint32 GAME_START_TIME = 0;
-const string player_directory = "./assets/graphics/player/down/down_0.png";
+
+const string PLAYER_DIRECTORY = "./assets/graphics/player/down/down_0.png";
+const SDL_Point PLAYER_SPAWNER = {1280, 1280};
+const int PLAYER_SPEED = 64;
+
 #endif
