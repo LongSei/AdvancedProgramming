@@ -1,7 +1,14 @@
 # GameProject
 
 ## Overview
-repository for keep track of doing the big project for the Advanced Programming.
+- Tên sinh viên: Phạm Huy Châu Long
+- MSSV: 23021615
+- Mô tả: Game nhập vai đánh quái.
+- Tính năng nổi bật: 
+   - Nhiều item.
+   - Tính năng máu, năng lượng, kinh nghiệm. 
+   - Hiệu ứng khi đánh nhau. 
+- Ngưỡng điểm:
 
 ### Language:
 - C++ 
@@ -11,6 +18,12 @@ repository for keep track of doing the big project for the Advanced Programming.
 - SDL_image
 
 ### Installation
-1. Clone the repository:
+1.
    ```sh
-   git clone https://github.com/LongSei/GameProject.git
+   $ git clone https://github.com/LongSei/AdvancedProgramming.git
+   ```
+2.
+   ```sh
+   $ cd Big_Project
+   $ make
+   ```
