@@ -5,14 +5,17 @@
 #include "./utils/constant.hpp"
 using namespace std;
 
-int main(int argc, char* argv[]) {
+int main() {
     Game mainGame;
-    mainGame.init(false, GAME_WIDTH, GAME_HEIGHT, "SeiDev");
+    Characters player = Characters("ceo", {1280, 1280}, "down", PLAYER_SPEED);
+    mainGame.init(false, GAME_WIDTH, GAME_HEIGHT, "SeiDev", player);
     mainGame.createMap();
     SDL_Event event;
+    mainGame.createEntities(player);
+
     while (mainGame.running()) {
         mainGame.handleEvents(event);
-        mainGame.renderClear();
         mainGame.renderUpdate();
+        SDL_Delay(100);
     }
 }

@@ -1,7 +1,7 @@
-MAIN_FILE=test.cpp
+MAIN_FILE=main.cpp
 OUTPUT_FILE=GameOutput
 
-UTILS_INCLUDE= ./utils/engine.cpp ./utils/company_tools/manager.cpp ./utils/company_tools/chatbox.cpp ./utils/entities/characters.cpp ./utils/essential.cpp ./utils/constant.cpp ./utils/grid.cpp
+UTILS_INCLUDE= ./utils/engine.cpp ./utils/characters.cpp ./utils/essential.cpp ./utils/constant.cpp ./utils/grid.cpp ./utils/entities.cpp
 
 # SDL2 include and library paths
 SDL_INCLUDE=-I/opt/homebrew/Cellar/sdl2/2.30.1/include/SDL2

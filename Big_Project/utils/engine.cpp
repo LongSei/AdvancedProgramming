@@ -1,7 +1,7 @@
 #include "engine.hpp"
 using namespace std;
 
-void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE) {
+void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE, Characters _mainPlayer) {
     isRunning = false;
     int SCREEN_STATUS = _IS_FULLSCREEN ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_SHOWN;
     // SDL2 Creating
@@ -38,19 +38,42 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
         SDL_Quit();
         return;
     }
-    mainManager.init();
     isRunning = true;
-    game_map.resize(3, map<int, map<int, Tile>>());
+
+    vector<int> game_map_sizes = {3, MAP_IMAGE_HEIGHT / TILESIZE, MAP_IMAGE_WIDTH / TILESIZE};
+    game_map.resize(game_map_sizes);
+    vector<int> game_entities_sizes = {MAP_IMAGE_HEIGHT / TILESIZE, MAP_IMAGE_WIDTH / TILESIZE};
+    game_entities.resize(game_entities_sizes);
+
     IS_FULLSCREEN = _IS_FULLSCREEN;
     SCREEN_HEIGHT = _SCREEN_HEIGHT;
     SCREEN_WIDTH = _SCREEN_WIDTH;
     SCREEN_TITLE = _SCREEN_TITLE;
     ScreenCamera = CameraScreen(renderer);
-    mainPlayer = Characters(PLAYER_DIRECTORY,"ceo", PLAYER_SPAWNER, "down", PLAYER_SPEED, renderer);
+    mainPlayer = _mainPlayer;
 }
 
-void Game::createMap() {
+void Game::createEntities(Characters& player) {
+    string name_entities = EssentialFunction().choice(ENIMIES_NAME);
+    
+    SDL_Point playerCoordinate = player.getCoordinate();
+    SDL_Point enemyCoordinate = playerCoordinate;
+    bool isValid = false;
+    while (isValid == false) {
+        int offsetX = EssentialFunction().randint(rangeEnemyOffSetX.first, rangeEnemyOffSetX.second);
+        int offsetY = EssentialFunction().randint(rangeEnemyOffSetY.first, rangeEnemyOffSetY.second);
+        enemyCoordinate = {min(MAP_IMAGE_WIDTH, playerCoordinate.x + offsetX * TILESIZE), min(MAP_IMAGE_HEIGHT, playerCoordinate.y + offsetY * TILESIZE)};
+        isValid = true;
+        for (int layer = 0; layer < 3; layer++) {
+            if (game_map[layer][enemyCoordinate.y / TILESIZE][enemyCoordinate.x / TILESIZE].groupCheck["walkon"] == false) {
+                isValid = false;
+            }
+        }
+    }
+    game_entities[enemyCoordinate.y / TILESIZE][enemyCoordinate.x / TILESIZE] = Entities(name_entities, enemyCoordinate);
+} 
 
+void Game::createMap() {
     map<string, vector<vector<string> > > layouts; 
     map<string, vector<SDL_Texture*> > graphics; 
 
@@ -105,43 +128,58 @@ void Game::handleEvents(SDL_Event event) {
             isRunning = false;
         }
         if (event.type == SDL_KEYDOWN) {
-            SDL_Point pre_position = mainPlayer.coordinate;
+            SDL_Point pre_position = mainPlayer.getCoordinate();
+            string MOVE_BACK = "";
             switch (event.key.keysym.sym) {
-                case SDLK_LEFT:
-                    mainPlayer.move("left");
+                case SDLK_a:
+                    mainPlayer.send_move("left");
+                    MOVE_BACK = "right";
                     break;
-                case SDLK_RIGHT:
-                    mainPlayer.move("right");
+                case SDLK_d:
+                    mainPlayer.send_move("right");
+                    MOVE_BACK = "left";
                     break;
-                case SDLK_UP:
-                    mainPlayer.move("up");
+                case SDLK_w:
+                    mainPlayer.send_move("up");
+                    MOVE_BACK = "down";
                     break;
-                case SDLK_DOWN:
-                    mainPlayer.move("down");
+                case SDLK_s:
+                    mainPlayer.send_move("down");
+                    MOVE_BACK = "up";
                     break;
-            }
-            vector<SDL_Point> collision = mainPlayer.getCollision();
-            for (SDL_Point& collisionCoordinate : collision) {
-                for (int layer = 0; layer <= 2; layer++) {
-                    Tile& tile = game_map[layer][collisionCoordinate.y / TILESIZE][collisionCoordinate.x / TILESIZE];
-                    if (tile.groupCheck["walkon"] == false) {
-                        mainPlayer.coordinate = pre_position;
-                        return;
-                    }
-                }
+                case SDLK_j:
+                    SDL_Point attackedTile = mainPlayer.send_attack();
+                    // ADD ATTACK entities
             }
         }
     }
 }
 
-void Game::renderUpdate() {
-    ScreenCamera.customDraw(mainPlayer, game_map);
-    // mainManager.render(startTime, renderer);
-    SDL_RenderPresent(renderer);
+void Game::playerHandle(string move_back) {
+    vector<SDL_Point> collision = mainPlayer.getCollision();
+    for (SDL_Point& collisionCoordinate : collision) {
+        for (int layer = 0; layer <= 2; layer++) {
+            Tile& tile = game_map[layer][collisionCoordinate.y / TILESIZE][collisionCoordinate.x / TILESIZE];
+            if (tile.groupCheck["walkon"] == false) {
+                mainPlayer.send_move(move_back);
+                return;
+            }
+        }
+    }
 }
 
-void Game::renderClear() {
+void Game::enemiesHandle() {
+    // ADD ENEMY MOVE AND ATTACK
+}
+
+void Game::renderUpdate() {
     SDL_RenderClear(renderer);
+    ScreenCamera.calculateVisibleArea(mainPlayer.getCenter());
+    ScreenCamera.mapDraw(game_map);
+    ScreenCamera.playerDraw(mainPlayer);
+    ScreenCamera.entitiesDraw(game_entities);
+    ScreenCamera.status_bar(mainPlayer, startTime);
+    SDL_RenderPresent(renderer);
 }
 
 void Game::clean() {
@@ -155,7 +193,6 @@ bool Game::running() {
     return isRunning;
 }
 
-
 CameraScreen::CameraScreen() {
     renderer = nullptr; 
     floor_surf = nullptr;
@@ -163,6 +200,7 @@ CameraScreen::CameraScreen() {
 
 CameraScreen::CameraScreen(SDL_Renderer* _renderer) {
     floor_surf = EssentialFunction().loadTexture(backgroundMap, _renderer);
+    SDL_QueryTexture(floor_surf, NULL, NULL, &MAP_WIDTH, &MAP_HEIGHT);
     SDL_Rect screenSize;
     SDL_GetRendererOutputSize(_renderer, &screenSize.w, &screenSize.h);
     half_screen = {screenSize.w / 2, screenSize.h / 2};
@@ -170,18 +208,50 @@ CameraScreen::CameraScreen(SDL_Renderer* _renderer) {
 }
 
 void CameraScreen::calculateVisibleArea(const SDL_Point& center) {
-    floor_rect = {max(0, center.x - half_screen.x), max(0, center.y - half_screen.y), half_screen.x * 2, half_screen.y * 2};
+    floor_rect = {max(0, min(MAP_WIDTH - half_screen.x * 2, center.x - half_screen.x)), max(0, min(MAP_HEIGHT - half_screen.y * 2, center.y - half_screen.y)), half_screen.x * 2, half_screen.y * 2};
 }
 
-void CameraScreen::customDraw(Characters& player, vector<map<int, map<int, Tile>>>& game_map) {
-    SDL_Point playerCenter = player.getCenter();
-    calculateVisibleArea(playerCenter);
+void CameraScreen::status_bar(Characters& player, Uint32 startTime) {
+    pair<float, float> currentStatus = player.getStatus();
+    float currentHealth = currentStatus.first;
+    float currentEnergy = currentStatus.second;
+
+    pair<float, float> maxStatus = player.getMaxStatus();
+    float maxHealth = maxStatus.first;
+    float maxEnergy = maxStatus.second;
+
+    Uint32 currentTime = SDL_GetTicks();
+    Uint32 elapsedTime = currentTime - startTime;
+    if ((elapsedTime % expectedTime <= tolerance) || (elapsedTime % expectedTime >= (expectedTime - tolerance))){
+        player.updateStatus();
+    }
+    // DETAIL
+    float ratio = currentHealth / maxHealth;
+    int current_width = (int)(HEALTH_BAR.w * ratio);
+    SDL_Rect current_rect = HEALTH_BAR;
+    current_rect.w = current_width;
+    SDL_SetRenderDrawColor(renderer, HEALTH_COLOR.r, HEALTH_COLOR.g, HEALTH_COLOR.b, HEALTH_COLOR.a);
+    SDL_RenderFillRect(renderer, &current_rect);
+
+    ratio = currentEnergy / maxEnergy;
+    current_width = (int)(ENERGY_BAR.w * ratio);
+    current_rect = ENERGY_BAR;
+    current_rect.w = current_width;
+    SDL_SetRenderDrawColor(renderer, ENERGY_COLOR.r, ENERGY_COLOR.g, ENERGY_COLOR.b, ENERGY_COLOR.a);
+    SDL_RenderFillRect(renderer, &current_rect);
+
+    // BORDER
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawRect(renderer, &ENERGY_BAR);
+    SDL_RenderDrawRect(renderer, &HEALTH_BAR);
+}
+
+void CameraScreen::mapDraw(MultiDimVector<Tile, 3>& game_map) {
     SDL_RenderCopy(renderer, floor_surf, &floor_rect, NULL);
-    player.render(renderer, {player.coordinate.x - floor_rect.x, player.coordinate.y - floor_rect.y});
 
     for (int layer = 0; layer <= 2; layer++) {
-        for (auto& [rowIndex, rowValue] : game_map[layer]) {
-            for (auto& [colIndex, colValue] : rowValue) {
+        for (auto& rowValue : game_map[layer]) {
+            for (auto& colValue : rowValue) {
                 Tile& tile = colValue; 
                 int& row = tile.box.posX;
                 int& col = tile.box.posY;
@@ -203,3 +273,21 @@ void CameraScreen::customDraw(Characters& player, vector<map<int, map<int, Tile>
     }
 }
 
+void CameraScreen::playerDraw(Characters& player) {
+    SDL_Point playerCoordinate = player.getCoordinate();
+    player.render(renderer, {playerCoordinate.x - floor_rect.x, playerCoordinate.y - floor_rect.y});
+}
+
+void CameraScreen::entitiesDraw(MultiDimVector<Entities, 2> game_entities) {
+    for (auto& rowValue : game_entities) {
+        for (auto& colValue : rowValue) {
+            Entities enemy = colValue;
+            SDL_Point enemyCoordinate = enemy.getCoordinate();
+            SDL_Point enemyDest = {enemyCoordinate.x - floor_rect.x, enemyCoordinate.y - floor_rect.y};
+            if (enemyDest.x >= 0 && enemyDest.x <= floor_rect.w &&
+                enemyDest.y >= 0 && enemyDest.y <= floor_rect.h) {
+                enemy.render(renderer, enemyDest);
+            }
+        }
+    }
+}

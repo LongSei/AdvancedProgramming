@@ -20,7 +20,9 @@ class Tile {
 
         SDL_Texture* image; 
         Grid box;
-        map<string, bool> groupCheck = {{"visible", false}, {"attackable", false}, {"walkon", true}};
+        map<string, bool> groupCheck = {{"visible", false}, 
+                                        {"attackable", false}, 
+                                        {"walkon", true}};
 };
 
 #endif 

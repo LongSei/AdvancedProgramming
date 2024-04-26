@@ -60,3 +60,10 @@ vector<SDL_Texture*> EssentialFunction::read_image_folder(string& path, SDL_Rend
     }
     return result;
 }
+
+int EssentialFunction::randint(int min_number, int max_number) {
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(min_number, max_number);
+    return dis(gen);
+}
