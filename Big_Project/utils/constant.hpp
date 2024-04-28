@@ -9,6 +9,7 @@
 // GAME WINDOW
 const int GAME_WIDTH = 1280;
 const int GAME_HEIGHT = 720;
+const string ASSET_DIRECTORY = "./assets/graphics/";
 
 // MAP
 const int TILESIZE = 64;
@@ -22,7 +23,7 @@ const Uint32 GAME_START_TIME = 0;
 // PLAYER STATUS
 const string PLAYER_DIRECTORY = "./assets/graphics/player/";
 const SDL_Point PLAYER_SPAWNER = {1280, 1280};
-const int PLAYER_SPEED = 32;
+const int PLAYER_SPEED = 64;
 const float PLAYER_ENERGY = 20;
 const float PLAYER_HEALTH = 100;
 const float ATTACK_COST = 10;
@@ -35,7 +36,7 @@ const SDL_Color ENERGY_COLOR = {0, 0, 255, 255};  // Blue
 const float HEALTH_ACCELERATE = 20;
 const float ENERGY_ACCELERATE = 20; 
 const Uint32 expectedTime = 10; // 1 second in milliseconds
-const Uint32 tolerance = 1;      // Tolerance threshold in milliseconds
+const Uint32 tolerance = 4;      // Tolerance threshold in milliseconds
 
 // ITEM GRAPHIC
 const int ITEM_SIZE = 64;
@@ -55,12 +56,16 @@ const map<string, string> ITEM_PATH =
 // ENTITIES STATUS
 const string ENEMIES_DIRECTORY = "./assets/graphics/monsters/";
 const map<string, map<string, float>> ENEMIES_STAT = {
-    {"bamboo", {{"HEALTH", 50}, {"DAMAGE", 20}, {"SPEED", 3.0}}},
-    {"spirit", {{"HEALTH", 70}, {"DAMAGE", 15}, {"SPEED", 4.0}}},
-    {"squid", {{"HEALTH", 60}, {"DAMAGE", 25}, {"SPEED", 2.5}}},
-    {"raccoon", {{"HEALTH", 40}, {"DAMAGE", 30}, {"SPEED", 3.5}}}
+    {"bamboo", {{"HEALTH", 10}, {"DAMAGE", 20}, {"SPEED", 64}, {"MOVE TIME", 2}}},
+    {"spirit", {{"HEALTH", 20}, {"DAMAGE", 15}, {"SPEED", 64}, {"MOVE TIME", 2}}},
+    {"squid", {{"HEALTH", 30}, {"DAMAGE", 25}, {"SPEED", 64}, {"MOVE TIME", 2}}},
 };
-const vector<string> ENIMIES_NAME = {"bamboo", "spirit", "squid", "raccoon"};
-const pair<int, int> rangeEnemyOffSetX = {-5, 5};
-const pair<int, int> rangeEnemyOffSetY = {-5, 5};
+const vector<string> ENIMIES_NAME = {"bamboo", "spirit", "squid"};
+const pair<int, int> RANGE_ENEMY_OFF_SET_X = {-5, 5};
+const pair<int, int> RANGE_ENEMY_OFF_SET_Y = {-5, 5};
+const float TOLERANCE_ENEMY_MOVE = 0.5;
+
+// GAME ENTITIES
+const int ENTITIES_SPAWN_TIME = 10;
+const float ENTITIES_SPAWN_TOLERANCE = 0.1;
 #endif

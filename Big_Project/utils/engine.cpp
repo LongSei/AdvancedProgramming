@@ -1,8 +1,9 @@
 #include "engine.hpp"
 using namespace std;
 
-void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE, Characters _mainPlayer) {
+void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE, Characters& _mainPlayer) {
     isRunning = false;
+    isStopping = false;
     int SCREEN_STATUS = _IS_FULLSCREEN ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_SHOWN;
     // SDL2 Creating
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -41,9 +42,13 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
     isRunning = true;
 
     vector<int> game_map_sizes = {3, MAP_IMAGE_HEIGHT / TILESIZE, MAP_IMAGE_WIDTH / TILESIZE};
-    game_map.resize(game_map_sizes);
-    vector<int> game_entities_sizes = {MAP_IMAGE_HEIGHT / TILESIZE, MAP_IMAGE_WIDTH / TILESIZE};
-    game_entities.resize(game_entities_sizes);
+    game_map.resize(game_map_sizes[0]);  // Resize the number of layers
+    for (auto& layer : game_map) {
+        layer.resize(game_map_sizes[1]);  // Resize the number of rows in each layer
+        for (auto& row : layer) {
+            row.resize(game_map_sizes[2], Tile());  // Resize the number of columns in each row, initialize with default_value
+        }
+    }
 
     IS_FULLSCREEN = _IS_FULLSCREEN;
     SCREEN_HEIGHT = _SCREEN_HEIGHT;
@@ -53,15 +58,15 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
     mainPlayer = _mainPlayer;
 }
 
-void Game::createEntities(Characters& player) {
+void Game::createEntities() {
     string name_entities = EssentialFunction().choice(ENIMIES_NAME);
     
-    SDL_Point playerCoordinate = player.getCoordinate();
+    SDL_Point playerCoordinate = mainPlayer.getCoordinate();
     SDL_Point enemyCoordinate = playerCoordinate;
     bool isValid = false;
     while (isValid == false) {
-        int offsetX = EssentialFunction().randint(rangeEnemyOffSetX.first, rangeEnemyOffSetX.second);
-        int offsetY = EssentialFunction().randint(rangeEnemyOffSetY.first, rangeEnemyOffSetY.second);
+        int offsetX = EssentialFunction().randint(RANGE_ENEMY_OFF_SET_X.first, RANGE_ENEMY_OFF_SET_X.second);
+        int offsetY = EssentialFunction().randint(RANGE_ENEMY_OFF_SET_Y.first, RANGE_ENEMY_OFF_SET_Y.second);
         enemyCoordinate = {min(MAP_IMAGE_WIDTH, playerCoordinate.x + offsetX * TILESIZE), min(MAP_IMAGE_HEIGHT, playerCoordinate.y + offsetY * TILESIZE)};
         isValid = true;
         for (int layer = 0; layer < 3; layer++) {
@@ -70,7 +75,8 @@ void Game::createEntities(Characters& player) {
             }
         }
     }
-    game_entities[enemyCoordinate.y / TILESIZE][enemyCoordinate.x / TILESIZE] = Entities(name_entities, enemyCoordinate);
+    Entities enemy(name_entities, enemyCoordinate);
+    game_entities.push_back(enemy);
 } 
 
 void Game::createMap() {
@@ -129,57 +135,99 @@ void Game::handleEvents(SDL_Event event) {
         }
         if (event.type == SDL_KEYDOWN) {
             SDL_Point pre_position = mainPlayer.getCoordinate();
-            string MOVE_BACK = "";
             switch (event.key.keysym.sym) {
                 case SDLK_a:
                     mainPlayer.send_move("left");
-                    MOVE_BACK = "right";
+                    playerHandle("left");
                     break;
                 case SDLK_d:
                     mainPlayer.send_move("right");
-                    MOVE_BACK = "left";
+                    playerHandle("right");
                     break;
                 case SDLK_w:
                     mainPlayer.send_move("up");
-                    MOVE_BACK = "down";
+                    playerHandle("up");
                     break;
                 case SDLK_s:
                     mainPlayer.send_move("down");
-                    MOVE_BACK = "up";
+                    playerHandle("down");
                     break;
                 case SDLK_j:
                     SDL_Point attackedTile = mainPlayer.send_attack();
-                    // ADD ATTACK entities
+                    for (int enemyIndex = 0; enemyIndex < game_entities.size(); enemyIndex++) {
+                        Entities& enemy = game_entities[enemyIndex];
+                        SDL_Point enemyCoordinate = enemy.getCoordinate();
+                        if (enemyCoordinate.x == attackedTile.x && enemyCoordinate.y == attackedTile.y) {
+                            enemy.takeDamage(mainPlayer.getDamage());
+                            if (enemy.getStatus() <= 0) {
+                                game_entities.erase(game_entities.begin() + enemyIndex);
+                                mainPlayer.takeExp();
+                            }
+                        }
+                    }
             }
         }
     }
 }
 
-void Game::playerHandle(string move_back) {
+void Game::playerHandle(const string& move_way) {
     vector<SDL_Point> collision = mainPlayer.getCollision();
     for (SDL_Point& collisionCoordinate : collision) {
         for (int layer = 0; layer <= 2; layer++) {
             Tile& tile = game_map[layer][collisionCoordinate.y / TILESIZE][collisionCoordinate.x / TILESIZE];
             if (tile.groupCheck["walkon"] == false) {
-                mainPlayer.send_move(move_back);
+                mainPlayer.undo_move(move_way);
                 return;
             }
         }
     }
+    mainPlayer.update_move(move_way);
 }
 
-void Game::enemiesHandle() {
-    // ADD ENEMY MOVE AND ATTACK
+void Game::entitiesHandle() {
+    for (auto& enemy : game_entities) {
+        Uint32 current_time = SDL_GetTicks();
+
+        int remain = current_time % int(enemy.getMoveTime() * 1000);
+        int lower_bound = int(enemy.getMoveTime() * 1000 - TOLERANCE_ENEMY_MOVE * 1000);
+        int upper_bound = TOLERANCE_ENEMY_MOVE * 1000;
+
+        if ((remain <= upper_bound) || (remain >= lower_bound)) {
+            vector<string> validMove = enemy.getValidMove(game_map);
+            string move_way = EssentialFunction().choice(validMove);
+
+            SDL_Point playerCoordinate = mainPlayer.getCoordinate();
+            SDL_Point oldEnemyCoordinate = enemy.getCoordinate();
+
+            int oldDistance = fabs(playerCoordinate.x - oldEnemyCoordinate.x) + fabs(playerCoordinate.y - oldEnemyCoordinate.y);
+            
+            enemy.send_move(move_way);
+            SDL_Point newEnemyCoordinate = enemy.getCoordinate();
+            int newDistance = fabs(playerCoordinate.x - newEnemyCoordinate.x) + fabs(playerCoordinate.y - newEnemyCoordinate.y);
+            if (newDistance == 0) {
+                mainPlayer.takeDamage(enemy.getDamage());
+                if (mainPlayer.getStatus().first <= 0) {
+                    gameOverScreen();
+                    return;
+                }
+            }
+            if (newDistance > oldDistance || newDistance == 0) {
+                enemy.undo_move(move_way);
+            }
+            else {
+                enemy.update_move(move_way);
+            }
+        }
+        ScreenCamera.entitiesDraw(enemy);
+    }
 }
 
 void Game::renderUpdate() {
-    SDL_RenderClear(renderer);
     ScreenCamera.calculateVisibleArea(mainPlayer.getCenter());
     ScreenCamera.mapDraw(game_map);
     ScreenCamera.playerDraw(mainPlayer);
-    ScreenCamera.entitiesDraw(game_entities);
     ScreenCamera.status_bar(mainPlayer, startTime);
-    SDL_RenderPresent(renderer);
+    entitiesHandle();
 }
 
 void Game::clean() {
@@ -191,6 +239,17 @@ void Game::clean() {
 
 bool Game::running() {
     return isRunning;
+}
+
+bool Game::stopping() {
+    return isStopping;
+}
+
+void Game::gameOverScreen() {
+    SDL_RenderClear(renderer);
+    isStopping = true;
+    SDL_Texture* game_over = EssentialFunction().loadTexture(ASSET_DIRECTORY + "game_over.png", renderer);
+    SDL_RenderCopy(renderer, game_over, NULL, NULL);
 }
 
 CameraScreen::CameraScreen() {
@@ -246,7 +305,7 @@ void CameraScreen::status_bar(Characters& player, Uint32 startTime) {
     SDL_RenderDrawRect(renderer, &HEALTH_BAR);
 }
 
-void CameraScreen::mapDraw(MultiDimVector<Tile, 3>& game_map) {
+void CameraScreen::mapDraw(vector<vector<vector<Tile> > >& game_map) {
     SDL_RenderCopy(renderer, floor_surf, &floor_rect, NULL);
 
     for (int layer = 0; layer <= 2; layer++) {
@@ -278,16 +337,11 @@ void CameraScreen::playerDraw(Characters& player) {
     player.render(renderer, {playerCoordinate.x - floor_rect.x, playerCoordinate.y - floor_rect.y});
 }
 
-void CameraScreen::entitiesDraw(MultiDimVector<Entities, 2> game_entities) {
-    for (auto& rowValue : game_entities) {
-        for (auto& colValue : rowValue) {
-            Entities enemy = colValue;
-            SDL_Point enemyCoordinate = enemy.getCoordinate();
-            SDL_Point enemyDest = {enemyCoordinate.x - floor_rect.x, enemyCoordinate.y - floor_rect.y};
-            if (enemyDest.x >= 0 && enemyDest.x <= floor_rect.w &&
-                enemyDest.y >= 0 && enemyDest.y <= floor_rect.h) {
-                enemy.render(renderer, enemyDest);
-            }
-        }
+void CameraScreen::entitiesDraw(Entities& enemy) {
+    SDL_Point enemyCoordinate = enemy.getCoordinate();
+    SDL_Point tileDest = {enemyCoordinate.x - floor_rect.x, enemyCoordinate.y - floor_rect.y};
+    if (tileDest.x >= 0 && tileDest.x <= floor_rect.w &&
+        tileDest.y >= 0 && tileDest.y <= floor_rect.h) {
+        enemy.render(renderer, tileDest);       
     }
 }

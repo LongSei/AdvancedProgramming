@@ -38,6 +38,9 @@ class Characters {
 
         bool isSendAttack = false;
 
+        float damage = 10;
+        int experiance = 0;
+
     public: 
         Characters();
         Characters(string _position, SDL_Point _coordinate, string _status, int _speed);
@@ -49,10 +52,16 @@ class Characters {
         pair<float, float> getAccelerate();
         pair<float, float> getStatus();
         pair<float, float> getMaxStatus();
+        float getDamage();
 
         void updateStatus();
         void send_move(const string& move_way);
+        void update_move(const string& move_way);
+        void undo_move(const string& move_way);
         SDL_Point send_attack();
+
+        void takeDamage(float damage);
+        void takeExp();
 };
 
 #endif

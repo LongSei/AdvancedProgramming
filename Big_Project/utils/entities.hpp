@@ -7,6 +7,7 @@
 #include"constant.hpp"
 #include"essential.hpp"
 #include"characters.hpp"
+#include"grid.hpp"
 using namespace std;
 
 class Entities {
@@ -22,18 +23,33 @@ class Entities {
         float health;
         float damage;
         float speed;
+        int move_time;
 
         bool isSendAttack = false;
 
         SDL_Point coordinate; 
 
     public: 
+        Uint32 time_wait = 0;
         Entities();
         Entities(string name, SDL_Point _coordinate);
+        Entities(const Entities& other);
         void render(SDL_Renderer* renderer, SDL_Point renderPosition);
         SDL_Point getCoordinate(); 
+        vector<SDL_Point> getCollision();
+        Uint32 getTime();
+        int getMoveTime();
+        void updateTime(Uint32 new_time);
+        float getSpeed();
+        float getStatus();
+        float getDamage();
+        vector<string> getValidMove(vector<vector<vector<Tile> > >& game_map);
 
         void send_move(const string& move_way);
+        void update_move(const string& move_way);
+        void undo_move(const string& move_way);
         SDL_Point send_attack(Characters& player);
+
+        void takeDamage(float damage);
 };
 #endif
