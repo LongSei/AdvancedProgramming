@@ -5,6 +5,7 @@
 #include<random>
 #include<SDL2/SDL.h>
 #include<SDL2/SDL_image.h>
+#include<SDL2/SDL_ttf.h>
 #include"characters.hpp"
 #include"essential.hpp"
 #include"constant.hpp"
@@ -21,6 +22,7 @@ class CameraScreen {
         void entitiesDraw(Entities& enemy);
         void calculateVisibleArea(const SDL_Point& center);
         void status_bar(Characters& player, Uint32 startTime); 
+        void score_show(Characters& player);
     private: 
         int MAP_WIDTH;
         int MAP_HEIGHT;
@@ -43,6 +45,7 @@ class Game {
         void entitiesHandle();
         bool stopping();
         void gameOverScreen();
+        void playerClearEntity();
         SDL_Renderer* renderer;
 
     private: 
@@ -53,6 +56,7 @@ class Game {
 
         vector<vector<vector<Tile> > > game_map;
         vector<Entities> game_entities;
+        int amount_entities = 1;
         bool IS_FULLSCREEN;
         int SCREEN_WIDTH;
         int SCREEN_HEIGHT;

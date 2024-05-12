@@ -25,8 +25,8 @@ class Characters {
         
         float maxHealth = PLAYER_HEALTH;
         float maxEnergy = PLAYER_ENERGY;
-        float health = maxHealth / 2;
-        float energy = maxEnergy / 2;
+        float health = maxHealth;
+        float energy = maxEnergy;
         float accHealth = HEALTH_ACCELERATE;
         float accEnergy = ENERGY_ACCELERATE;
 
@@ -43,7 +43,7 @@ class Characters {
 
     public: 
         Characters();
-        Characters(string _position, SDL_Point _coordinate, string _status, int _speed);
+        Characters(SDL_Point _coordinate, string _status, int _speed);
         void render(SDL_Renderer* renderer, SDL_Point renderPosition);
 
         SDL_Point getCoordinate();
@@ -53,6 +53,7 @@ class Characters {
         pair<float, float> getStatus();
         pair<float, float> getMaxStatus();
         float getDamage();
+        int getExp();
 
         void updateStatus();
         void send_move(const string& move_way);

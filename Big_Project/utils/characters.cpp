@@ -8,7 +8,7 @@ Characters::Characters() {
     damage = 10;
 }
 
-Characters::Characters(string _position, SDL_Point _coordinate, string _status, int _speed) {
+Characters::Characters(SDL_Point _coordinate, string _status, int _speed) {
     coordinate = _coordinate;
     status = _status;
     speed = _speed;
@@ -115,7 +115,7 @@ pair<float, float> Characters::getMaxStatus() {
 
 void Characters::updateStatus() {
     if (isHealthDecrease == true) {
-        health_time_refill = -5;
+        health_time_refill = -2;
         isHealthDecrease = false;
     }
     else {
@@ -125,7 +125,7 @@ void Characters::updateStatus() {
     }
 
     if (isEnergyDecrease == true) {
-        energy_time_refill = -5;
+        energy_time_refill = -2;
         isEnergyDecrease = false;
     }
     else {
@@ -150,7 +150,7 @@ SDL_Point Characters::send_attack() {
         attack_coordinate.x += TILESIZE;
     }
     if (energy >= ATTACK_COST) {
-        energy -= 10;
+        energy -= ATTACK_COST;
         isEnergyDecrease = true;
         isSendAttack = true;
         return attack_coordinate;
@@ -172,4 +172,10 @@ void Characters::takeExp() {
     damage += 0.1;
     health += 1;
     energy += 1;
+    accEnergy = max(0.1, accEnergy - 0.1);
+    accHealth = max(0.1, accHealth - 0.1);
+}
+
+int Characters::getExp() {
+    return experiance;
 }

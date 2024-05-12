@@ -8,6 +8,7 @@ class Grid {
     public: 
         Grid();
         Grid(int x, int y);
+        Grid(const Grid& other);
         int posX;
         int posY;
 };

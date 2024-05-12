@@ -67,3 +67,13 @@ int EssentialFunction::randint(int min_number, int max_number) {
     uniform_int_distribution<> dis(min_number, max_number);
     return dis(gen);
 }
+
+SDL_Texture* EssentialFunction::loadFont(TTF_Font* font, int size, const SDL_Color& color, string& text, SDL_Renderer* renderer) {
+    SDL_Surface* text_surface = TTF_RenderText_Solid(font, text.c_str(), color);
+    SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+    if (text_texture == nullptr) {
+        SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR, "Create texture from text %s", SDL_GetError());
+    }
+    SDL_FreeSurface(text_surface);
+    return text_texture;
+}
