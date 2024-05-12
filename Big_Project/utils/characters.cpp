@@ -5,12 +5,14 @@ Characters::Characters() {
     coordinate = {0,0};
     status = "down";
     speed = 0;
+    damage = 10;
 }
 
-Characters::Characters(string _position, SDL_Point _coordinate, string _status, int _speed) {
+Characters::Characters(SDL_Point _coordinate, string _status, int _speed) {
     coordinate = _coordinate;
     status = _status;
     speed = _speed;
+    damage = 10;
 }
 
 void Characters::render(SDL_Renderer* renderer, SDL_Point renderPosition) {
@@ -39,19 +41,19 @@ vector<SDL_Point> Characters::getCollision() {
     int& posX = coordinate.x;
     int& posY = coordinate.y;
     vector<SDL_Point> collisionBlock;
-    if (posX % 64 != 0 && posY % 64 != 0) {
-        collisionBlock.push_back({posX - (posX % 64), posY - (posY % 64)});
-        collisionBlock.push_back({posX - (posX % 64), posY + (64 - (posY % 64))});
-        collisionBlock.push_back({posX + (64 - (posX % 64)), posY - (posY % 64)});
-        collisionBlock.push_back({posX + (64 - (posX % 64)), posY - (64 - (posY % 64))});
+    if (posX % TILESIZE != 0 && posY % TILESIZE != 0) {
+        collisionBlock.push_back({posX - (posX % TILESIZE), posY - (posY % TILESIZE)});
+        collisionBlock.push_back({posX - (posX % TILESIZE), posY + (TILESIZE - (posY % TILESIZE))});
+        collisionBlock.push_back({posX + (TILESIZE - (posX % TILESIZE)), posY - (posY % TILESIZE)});
+        collisionBlock.push_back({posX + (TILESIZE - (posX % TILESIZE)), posY + (TILESIZE - (posY % TILESIZE))});
     }
-    else if (posX % 64 != 0) {
-        collisionBlock.push_back({posX - (posX % 64), posY});
-        collisionBlock.push_back({posX - (64 - (posX % 64)), posY});
+    else if (posX % TILESIZE != 0) {
+        collisionBlock.push_back({posX - (posX % TILESIZE), posY});
+        collisionBlock.push_back({posX + (TILESIZE - (posX % TILESIZE)), posY});
     }
-    else if (posY % 64 != 0) {
-        collisionBlock.push_back({posX, posY - (posY % 64)});
-        collisionBlock.push_back({posX, posY - (64 - (posY % 64))});
+    else if (posY % TILESIZE != 0) {
+        collisionBlock.push_back({posX, posY - (posY % TILESIZE)});
+        collisionBlock.push_back({posX, posY + (TILESIZE - (posY % TILESIZE))});
     }
     else {
         collisionBlock.push_back(coordinate);
@@ -72,16 +74,30 @@ void Characters::send_move(const string& move_way) {
     else if (move_way == "right") {
         coordinate.x += speed;
     }
-    else {
-        SDL_Log("Move Way Error !!!");
-        return;
-    }
+}
+
+void Characters::update_move(const string& move_way) {
     if (status == move_way) {
         status_index = (status_index + 1) % 4;
     }
     else {
         status = move_way;
         status_index = 0;
+    }
+}
+
+void Characters::undo_move(const string& move_way) {
+    if (move_way == "up") {
+        coordinate.y += speed;
+    }
+    else if (move_way == "down") {
+        coordinate.y -= speed;
+    }
+    else if (move_way == "left") {
+        coordinate.x += speed;
+    }
+    else if (move_way == "right") {
+        coordinate.x -= speed;
     }
 }
 
@@ -99,7 +115,7 @@ pair<float, float> Characters::getMaxStatus() {
 
 void Characters::updateStatus() {
     if (isHealthDecrease == true) {
-        health_time_refill = -5;
+        health_time_refill = -2;
         isHealthDecrease = false;
     }
     else {
@@ -109,7 +125,7 @@ void Characters::updateStatus() {
     }
 
     if (isEnergyDecrease == true) {
-        energy_time_refill = -5;
+        energy_time_refill = -2;
         isEnergyDecrease = false;
     }
     else {
@@ -134,10 +150,32 @@ SDL_Point Characters::send_attack() {
         attack_coordinate.x += TILESIZE;
     }
     if (energy >= ATTACK_COST) {
-        energy -= 10;
+        energy -= ATTACK_COST;
         isEnergyDecrease = true;
         isSendAttack = true;
         return attack_coordinate;
     }
     return {0,0};
+}
+
+float Characters::getDamage() {
+    return damage;
+}
+
+void Characters::takeDamage(float damage) {
+    health -= damage;
+    isHealthDecrease = true;
+}
+
+void Characters::takeExp() {
+    experiance += 1;
+    damage += 0.1;
+    health += 1;
+    energy += 1;
+    accEnergy = max(0.1, accEnergy - 0.1);
+    accHealth = max(0.1, accHealth - 0.1);
+}
+
+int Characters::getExp() {
+    return experiance;
 }

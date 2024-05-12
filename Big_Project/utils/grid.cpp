@@ -11,6 +11,11 @@ Grid::Grid(int _posX, int _posY) {
     posY = _posY;
 }
 
+Grid::Grid(const Grid& other) {
+    posX = other.posX;
+    posY = other.posY;
+}
+
 Tile::Tile() {
     image = nullptr;
     box = Grid();

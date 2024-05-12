@@ -219,13 +219,15 @@ int main(int argc, char* args[]) {
 }
 
 
-// #include<bits/stdc++.h>
-// #include"./utils/essential.hpp"
-// using namespace std;
+#include<bits/stdc++.h>
+#include"./utils/essential.hpp"
+using namespace std;
 
-// int main() {
-//     MultiDimVector<int, 3> darray;
-//     vector<int> size = {1,2,3};
-//     darray.resize(size);
-//     cout << darray.size() << " " << darray[1].size() << " " << darray[2].size() <<
-// }
+int main() {
+    MultiDimVector<int, 3> darray;
+    vector<int> size = {1,2,3};
+    darray.resize(size);
+    for (auto v : darray) {
+        cout << v.size() << endl;
+    }
+}

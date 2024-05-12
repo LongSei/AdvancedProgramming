@@ -1,8 +1,9 @@
 #include "engine.hpp"
 using namespace std;
 
-void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE, Characters _mainPlayer) {
+void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE, Characters& _mainPlayer) {
     isRunning = false;
+    isStopping = false;
     int SCREEN_STATUS = _IS_FULLSCREEN ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_SHOWN;
     // SDL2 Creating
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -14,6 +15,14 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
     // Image Loader Creating
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
         SDL_Log("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+        SDL_Quit();
+        return;
+    }
+
+    // Font Loader Creating
+    if (!(TTF_Init() == 0)) {
+        SDL_Log("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
+        IMG_Quit();
         SDL_Quit();
         return;
     }
@@ -38,12 +47,17 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
         SDL_Quit();
         return;
     }
+
     isRunning = true;
 
     vector<int> game_map_sizes = {3, MAP_IMAGE_HEIGHT / TILESIZE, MAP_IMAGE_WIDTH / TILESIZE};
-    game_map.resize(game_map_sizes);
-    vector<int> game_entities_sizes = {MAP_IMAGE_HEIGHT / TILESIZE, MAP_IMAGE_WIDTH / TILESIZE};
-    game_entities.resize(game_entities_sizes);
+    game_map.resize(game_map_sizes[0]);  // Resize the number of layers
+    for (auto& layer : game_map) {
+        layer.resize(game_map_sizes[1]);  // Resize the number of rows in each layer
+        for (auto& row : layer) {
+            row.resize(game_map_sizes[2], Tile());  // Resize the number of columns in each row, initialize with default_value
+        }
+    }
 
     IS_FULLSCREEN = _IS_FULLSCREEN;
     SCREEN_HEIGHT = _SCREEN_HEIGHT;
@@ -53,24 +67,42 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
     mainPlayer = _mainPlayer;
 }
 
-void Game::createEntities(Characters& player) {
+void Game::playerClearEntity() {
+    cout << game_entities.size() << endl;
+    if (game_entities.size() == 0) {
+        for (int amount = 1; amount <= amount_entities; amount++) {
+            createEntities();
+        }
+        amount_entities += EssentialFunction().choice(RANDOM_AMOUNT_ENTITIES);
+    }
+}
+
+void Game::createEntities() {
     string name_entities = EssentialFunction().choice(ENIMIES_NAME);
     
-    SDL_Point playerCoordinate = player.getCoordinate();
+    SDL_Point playerCoordinate = mainPlayer.getCoordinate();
     SDL_Point enemyCoordinate = playerCoordinate;
     bool isValid = false;
     while (isValid == false) {
-        int offsetX = EssentialFunction().randint(rangeEnemyOffSetX.first, rangeEnemyOffSetX.second);
-        int offsetY = EssentialFunction().randint(rangeEnemyOffSetY.first, rangeEnemyOffSetY.second);
+        int offsetX = EssentialFunction().randint(RANGE_ENEMY_OFF_SET_X.first, RANGE_ENEMY_OFF_SET_X.second);
+        int offsetY = EssentialFunction().randint(RANGE_ENEMY_OFF_SET_Y.first, RANGE_ENEMY_OFF_SET_Y.second);
+        while (offsetX == 0 && offsetY == 0) {
+            offsetX = EssentialFunction().randint(RANGE_ENEMY_OFF_SET_X.first, RANGE_ENEMY_OFF_SET_X.second);
+            offsetY = EssentialFunction().randint(RANGE_ENEMY_OFF_SET_Y.first, RANGE_ENEMY_OFF_SET_Y.second);
+        }
         enemyCoordinate = {min(MAP_IMAGE_WIDTH, playerCoordinate.x + offsetX * TILESIZE), min(MAP_IMAGE_HEIGHT, playerCoordinate.y + offsetY * TILESIZE)};
+        enemyCoordinate = {max(0, enemyCoordinate.x - (enemyCoordinate.x % TILESIZE)), max(0, enemyCoordinate.y  - (enemyCoordinate.y % TILESIZE))};
         isValid = true;
-        for (int layer = 0; layer < 3; layer++) {
-            if (game_map[layer][enemyCoordinate.y / TILESIZE][enemyCoordinate.x / TILESIZE].groupCheck["walkon"] == false) {
+        for (int layer = 0; layer <= 2; layer++) {
+            Tile& tile = game_map[layer][enemyCoordinate.y / TILESIZE][enemyCoordinate.x / TILESIZE];
+            if (tile.groupCheck["walkon"] == false) {
                 isValid = false;
+                break;
             }
         }
     }
-    game_entities[enemyCoordinate.y / TILESIZE][enemyCoordinate.x / TILESIZE] = Entities(name_entities, enemyCoordinate);
+    Entities enemy(name_entities, enemyCoordinate);
+    game_entities.push_back(enemy);
 } 
 
 void Game::createMap() {
@@ -101,20 +133,17 @@ void Game::createMap() {
                     int y = row_index * TILESIZE;
                     if (blockStyle == "map_FloorBlocks.csv") {
                         map<string, bool> groupCheck = {{"visible", false}, {"attackable", false}, {"walkon", false}};
-                        Tile hitbox = Tile(NULL, groupCheck, x, y);
-                        game_map[0][col_index][row_index] = hitbox;
+                        game_map[0][col_index][row_index] = Tile(NULL, groupCheck, x, y);
                     }
                     else if (blockStyle == "map_Grass.csv") {
                         map<string, bool> groupCheck = {{"visible", true}, {"attackable", false}, {"walkon", false}};
                         SDL_Texture* image = EssentialFunction().choice(graphics["grass"]);
-                        Tile hitbox = Tile(image, groupCheck, x, y);
-                        game_map[1][col_index][row_index] = hitbox;
+                        game_map[1][col_index][row_index] = Tile(image, groupCheck, x, y);
                     }
                     else if (blockStyle == "map_Objects.csv") {
                         map<string, bool> groupCheck = {{"visible", true}, {"attackable", false}, {"walkon", false}};
                         SDL_Texture* image = graphics["objects"][row[0] - '0'];
-                        Tile hitbox = Tile(image, groupCheck, x, y);
-                        game_map[2][col_index][row_index] = hitbox;
+                        game_map[2][col_index][row_index] = Tile(image, groupCheck, x, y);
                     }
                 }
             }
@@ -129,57 +158,132 @@ void Game::handleEvents(SDL_Event event) {
         }
         if (event.type == SDL_KEYDOWN) {
             SDL_Point pre_position = mainPlayer.getCoordinate();
-            string MOVE_BACK = "";
             switch (event.key.keysym.sym) {
                 case SDLK_a:
                     mainPlayer.send_move("left");
-                    MOVE_BACK = "right";
+                    playerHandle("left");
                     break;
                 case SDLK_d:
                     mainPlayer.send_move("right");
-                    MOVE_BACK = "left";
+                    playerHandle("right");
                     break;
                 case SDLK_w:
                     mainPlayer.send_move("up");
-                    MOVE_BACK = "down";
+                    playerHandle("up");
                     break;
                 case SDLK_s:
                     mainPlayer.send_move("down");
-                    MOVE_BACK = "up";
+                    playerHandle("down");
                     break;
                 case SDLK_j:
                     SDL_Point attackedTile = mainPlayer.send_attack();
-                    // ADD ATTACK entities
+                    SDL_Rect attackedRect = {attackedTile.x, attackedTile.y, TILESIZE, TILESIZE};
+                    for (int enemyIndex = 0; enemyIndex < game_entities.size(); enemyIndex++) {
+                        Entities& enemy = game_entities[enemyIndex];
+                        SDL_Point enemyCoordinate = enemy.getCoordinate();
+                        SDL_Rect enemyRect = {enemyCoordinate.x, enemyCoordinate.y, TILESIZE, TILESIZE};
+                        if (SDL_HasIntersection(&attackedRect, &enemyRect)) {
+                            enemy.takeDamage(mainPlayer.getDamage());
+                            if (enemy.getStatus() <= 0) {
+                                game_entities.erase(game_entities.begin() + enemyIndex);
+                                mainPlayer.takeExp();
+                            }
+                        }
+                    }
             }
         }
     }
 }
 
-void Game::playerHandle(string move_back) {
+void Game::playerHandle(const string& move_way) {
     vector<SDL_Point> collision = mainPlayer.getCollision();
     for (SDL_Point& collisionCoordinate : collision) {
         for (int layer = 0; layer <= 2; layer++) {
             Tile& tile = game_map[layer][collisionCoordinate.y / TILESIZE][collisionCoordinate.x / TILESIZE];
             if (tile.groupCheck["walkon"] == false) {
-                mainPlayer.send_move(move_back);
+                mainPlayer.undo_move(move_way);
+                mainPlayer.update_move(move_way);
                 return;
             }
         }
     }
+
+    for (int enemyIndex = 0; enemyIndex < game_entities.size(); enemyIndex++) {
+        Entities& enemy = game_entities[enemyIndex];
+        if (enemy.checkCollisionPlayer(mainPlayer)) {
+            mainPlayer.undo_move(move_way);
+            mainPlayer.update_move(move_way);
+            return;
+        }
+    }
+    mainPlayer.update_move(move_way);
 }
 
-void Game::enemiesHandle() {
-    // ADD ENEMY MOVE AND ATTACK
+void Game::entitiesHandle() {
+    for (auto& enemy : game_entities) {
+        Uint32 current_time = SDL_GetTicks();
+
+        int remain_move = current_time % int(enemy.getMoveTime() * 1000);
+        int lower_bound_move = int(enemy.getMoveTime() * 1000 - TOLERANCE_ENEMY_MOVE * 1000);
+        int upper_bound_move = TOLERANCE_ENEMY_MOVE * 1000;
+
+        if (remain_move <= upper_bound_move || remain_move >= lower_bound_move) {
+            map<string, bool> check = {{"up", false}, {"down", false}, {"left", false}, {"right", false}};
+            int remainCheck = 4;
+            string move_way = "up";
+            while (remainCheck) {
+                while (check[move_way] == true) {
+                    move_way = EssentialFunction().choice(POSSIBLE_MOVES);
+                    if (check[move_way] == false) {
+                        break;
+                    }
+                }
+                remainCheck--;
+                check[move_way] = true;
+                int OldDistance = abs(enemy.getCoordinate().x - mainPlayer.getCoordinate().x) + abs(enemy.getCoordinate().y - mainPlayer.getCoordinate().y);
+                enemy.send_move(move_way);
+                int NewDistance = abs(enemy.getCoordinate().x - mainPlayer.getCoordinate().x) + abs(enemy.getCoordinate().y - mainPlayer.getCoordinate().y);
+                
+                if (enemy.getValidMove(game_map, mainPlayer)) {
+                    if (NewDistance < OldDistance) {
+                        enemy.update_move(move_way);
+                        break;
+                    } 
+                    else {
+                        enemy.undo_move(move_way);
+                    }
+                } 
+                else if (enemy.checkCollisionPlayer(mainPlayer)) {
+                    int attack_interval_ms = int(enemy.getAttackTime() * 1000);
+                    int tolerance_ms = TOLERANCE_ENEMY_ATTACK * 1000;
+                    int remain_attack = current_time % attack_interval_ms;
+                    if (remain_attack <= tolerance_ms || (attack_interval_ms - remain_attack) <= tolerance_ms) {
+                        enemy.send_attack(mainPlayer);
+                    }
+                    enemy.undo_move(move_way);
+                    break;
+                } 
+                else {
+                    enemy.undo_move(move_way);
+                }
+            }
+        }
+        ScreenCamera.entitiesDraw(enemy);
+    }
 }
 
 void Game::renderUpdate() {
-    SDL_RenderClear(renderer);
-    ScreenCamera.calculateVisibleArea(mainPlayer.getCenter());
-    ScreenCamera.mapDraw(game_map);
-    ScreenCamera.playerDraw(mainPlayer);
-    ScreenCamera.entitiesDraw(game_entities);
-    ScreenCamera.status_bar(mainPlayer, startTime);
-    SDL_RenderPresent(renderer);
+    if (mainPlayer.getStatus().first <= 0 || isStopping == true) {
+        gameOverScreen();
+    }
+    else {
+        ScreenCamera.calculateVisibleArea(mainPlayer.getCenter());
+        ScreenCamera.mapDraw(game_map);
+        ScreenCamera.playerDraw(mainPlayer);
+        entitiesHandle();
+        ScreenCamera.status_bar(mainPlayer, startTime);
+        ScreenCamera.score_show(mainPlayer);
+    }
 }
 
 void Game::clean() {
@@ -191,6 +295,41 @@ void Game::clean() {
 
 bool Game::running() {
     return isRunning;
+}
+
+bool Game::stopping() {
+    return isStopping;
+}
+
+void Game::gameOverScreen() {
+    isStopping = true;
+    string GAME_OVER_STRING = "GAME OVER\n" + to_string(mainPlayer.getExp());
+    SDL_Texture* game_over_background = EssentialFunction().loadTexture(GAME_OVER_IMAGE, renderer);
+    SDL_RenderCopy(renderer, game_over_background, NULL, NULL);
+    SDL_DestroyTexture(game_over_background);
+
+    TTF_Font* font = TTF_OpenFont(FONT_PATH.c_str(), GAME_OVER_FONT_SIZE);
+    int line_height = TTF_FontLineSkip(font);
+    vector<string> lineText = EssentialFunction().split(GAME_OVER_STRING, '\n');
+    int currentLineIdx = 0;
+    int amountLines = lineText.size();
+    int totalY = 0;
+
+    while (currentLineIdx != amountLines) {
+        string text = lineText[currentLineIdx];
+        SDL_Texture* texture = EssentialFunction().loadFont(font, GAME_OVER_FONT_SIZE, GAME_OVER_FONT_COLOR, text, renderer);
+        int texture_width, texture_height;
+        SDL_QueryTexture(texture, NULL, NULL, &texture_width, &texture_height);
+        if (currentLineIdx == 0) {
+            totalY = texture_height * amountLines + GAME_OVER_MARGIN * (amountLines - 1);
+        }
+        SDL_Rect text_rect = { (SCREEN_WIDTH - texture_width) / 2, (SCREEN_HEIGHT - totalY) / 2 + currentLineIdx * (texture_height + GAME_OVER_MARGIN), texture_width, texture_height };
+        SDL_RenderCopy(renderer, texture, NULL, &text_rect);
+        SDL_DestroyTexture(texture);
+        currentLineIdx++;
+    }
+
+    TTF_CloseFont(font);
 }
 
 CameraScreen::CameraScreen() {
@@ -241,12 +380,12 @@ void CameraScreen::status_bar(Characters& player, Uint32 startTime) {
     SDL_RenderFillRect(renderer, &current_rect);
 
     // BORDER
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(renderer, BLACK.r, BLACK.g, BLACK.b, BLACK.a);
     SDL_RenderDrawRect(renderer, &ENERGY_BAR);
     SDL_RenderDrawRect(renderer, &HEALTH_BAR);
 }
 
-void CameraScreen::mapDraw(MultiDimVector<Tile, 3>& game_map) {
+void CameraScreen::mapDraw(vector<vector<vector<Tile> > >& game_map) {
     SDL_RenderCopy(renderer, floor_surf, &floor_rect, NULL);
 
     for (int layer = 0; layer <= 2; layer++) {
@@ -278,16 +417,26 @@ void CameraScreen::playerDraw(Characters& player) {
     player.render(renderer, {playerCoordinate.x - floor_rect.x, playerCoordinate.y - floor_rect.y});
 }
 
-void CameraScreen::entitiesDraw(MultiDimVector<Entities, 2> game_entities) {
-    for (auto& rowValue : game_entities) {
-        for (auto& colValue : rowValue) {
-            Entities enemy = colValue;
-            SDL_Point enemyCoordinate = enemy.getCoordinate();
-            SDL_Point enemyDest = {enemyCoordinate.x - floor_rect.x, enemyCoordinate.y - floor_rect.y};
-            if (enemyDest.x >= 0 && enemyDest.x <= floor_rect.w &&
-                enemyDest.y >= 0 && enemyDest.y <= floor_rect.h) {
-                enemy.render(renderer, enemyDest);
-            }
-        }
+void CameraScreen::entitiesDraw(Entities& enemy) {
+    SDL_Point enemyCoordinate = enemy.getCoordinate();
+    SDL_Point tileDest = {enemyCoordinate.x - floor_rect.x, enemyCoordinate.y - floor_rect.y};
+    if (tileDest.x >= 0 && tileDest.x <= floor_rect.w &&
+        tileDest.y >= 0 && tileDest.y <= floor_rect.h) {
+        enemy.render(renderer, tileDest);       
     }
+}
+
+void CameraScreen::score_show(Characters& player) {
+    int score = player.getExp();
+    string SCORE_TEXT = "SCORE:" + to_string(score);
+    TTF_Font* font = TTF_OpenFont(FONT_PATH.c_str(), SCORE_FONT_SIZE);
+    SDL_Texture* texture = EssentialFunction().loadFont(font, SCORE_FONT_SIZE, SCORE_FONT_COLOR, SCORE_TEXT, renderer);
+    int text_width, text_height;
+    SDL_QueryTexture(texture, NULL, NULL, &text_width, &text_height);
+
+    SDL_Rect textRect = {GAME_WIDTH - text_width - SCORE_MARGIN, SCORE_MARGIN, text_width, text_height};
+    SDL_RenderCopy(renderer, texture, NULL, &textRect);
+
+    SDL_DestroyTexture(texture); 
+    TTF_CloseFont(font); 
 }

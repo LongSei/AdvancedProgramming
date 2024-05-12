@@ -7,6 +7,7 @@
 #include"constant.hpp"
 #include"essential.hpp"
 #include"characters.hpp"
+#include"grid.hpp"
 using namespace std;
 
 class Entities {
@@ -16,24 +17,43 @@ class Entities {
         string status;
 
         SDL_Texture* image;
-        set<string> validStatus = {"down", "up", "left", "right"};
 
         string name;
+        float max_health;
         float health;
         float damage;
-        float speed;
+        int speed;
+        int move_time;
+        int attack_time;
 
         bool isSendAttack = false;
 
         SDL_Point coordinate; 
 
     public: 
+        Uint32 time_wait = 0;
         Entities();
         Entities(string name, SDL_Point _coordinate);
+        Entities(const Entities& other);
         void render(SDL_Renderer* renderer, SDL_Point renderPosition);
         SDL_Point getCoordinate(); 
+        bool getCollision(vector<vector<vector<Tile> > >& game_map);
+        Uint32 getTime();
+        int getMoveTime();
+        int getAttackTime();
+        void updateTime(Uint32 new_time);
+        float getSpeed();
+        float getStatus();
+        float getDamage();
+        bool getValidMove(vector<vector<vector<Tile> > >& game_map, Characters& player);
 
         void send_move(const string& move_way);
-        SDL_Point send_attack(Characters& player);
+        void update_move(const string& move_way);
+        void undo_move(const string& move_way);
+        void send_attack(Characters& player);
+
+        bool checkCollisionPlayer(Characters& player);
+
+        void takeDamage(float damage);
 };
 #endif
