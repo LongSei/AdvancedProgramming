@@ -87,7 +87,7 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
 
 void Game::playerClearEntity() {
     if (game_entities.size() == 0) {
-        if (amount_entities >= 200) {
+        if (amount_entities >= MAX_ENTITIES) {
             isRunning = false;
         }
         for (int amount = 1; amount <= amount_entities; amount++) {

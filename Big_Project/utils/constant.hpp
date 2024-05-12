@@ -78,6 +78,7 @@ const map<string, string> ITEM_PATH =
                                     };
 
 // ENTITIES STATUS
+const int MAX_ENTITIES = 200;
 const string ENEMIES_DIRECTORY = "./assets/graphics/monsters/";
 const map<string, map<string, float>> ENEMIES_STAT = {
     {"bamboo", {{"HEALTH", 10}, {"DAMAGE", 20}, {"SPEED", 4}, {"MOVE TIME", 0.5}, {"ATTACK TIME", 1}}},
