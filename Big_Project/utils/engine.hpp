@@ -10,7 +10,6 @@
 #include"essential.hpp"
 #include"constant.hpp"
 #include"grid.hpp"
-#include"menu.hpp"
 #include"entities.hpp"
 
 class CameraScreen {
