@@ -8,7 +8,7 @@ using namespace std;
 int main() {
     Game mainGame;
     Characters player = Characters({1280, 1280}, "down", PLAYER_SPEED);
-    mainGame.init(false, GAME_WIDTH, GAME_HEIGHT, "SeiDev", player);
+    mainGame.init(false, GAME_WIDTH, GAME_HEIGHT, "SeiDev", GAME_MUSIC_PATH.c_str(), player);
     mainGame.createMap();
     SDL_Event event;
     while (mainGame.running()) {
@@ -25,6 +25,6 @@ int main() {
             SDL_RenderPresent(mainGame.renderer);
         }
         SDL_Delay(100);
-
     }
+    mainGame.clean();
 }

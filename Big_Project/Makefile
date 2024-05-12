@@ -15,5 +15,8 @@ SDL_IMAGE_LIB=-L/opt/homebrew/Cellar/sdl2_image/2.8.2_1/lib -lSDL2_image
 SDL_TTF_INCLUDE=-I/opt/homebrew/Cellar/sdl2_ttf/2.22.0/include/SDL2
 SDL_TTF_LIB=-L/opt/homebrew/Cellar/sdl2_ttf/2.22.0/lib -lSDL2_ttf
 
+SDL_MIXER_INCLUDE=-I/opt/homebrew/Cellar/sdl2_mixer/2.8.0/include/SDL2
+SDL_MIXER_LIB=-L/opt/homebrew/Cellar/sdl2_mixer/2.8.0/lib -lSDL2_mixer
+
 hellomake: 
-	clang++ -std=c++17 $(MAIN_FILE) $(UTILS_INCLUDE) -o $(OUTPUT_FILE) $(SDL_INCLUDE) $(SDL_LIB) $(SDL_IMAGE_INCLUDE) $(SDL_IMAGE_LIB) $(SDL_TTF_INCLUDE) $(SDL_TTF_LIB) && ./$(OUTPUT_FILE)
+	clang++ -std=c++17 $(MAIN_FILE) $(UTILS_INCLUDE) -o $(OUTPUT_FILE) $(SDL_INCLUDE) $(SDL_LIB) $(SDL_IMAGE_INCLUDE) $(SDL_IMAGE_LIB) $(SDL_TTF_INCLUDE) $(SDL_TTF_LIB) $(SDL_MIXER_INCLUDE) $(SDL_MIXER_LIB) && ./$(OUTPUT_FILE)

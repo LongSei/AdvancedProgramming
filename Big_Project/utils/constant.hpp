@@ -5,6 +5,7 @@
 #include<SDL2/SDL.h>
 #include<SDL2/SDL_image.h>
 #include<SDL2/SDL_ttf.h>
+#include<SDL2/SDL_mixer.h>
 #include"essential.hpp"
 
 // COLOR
@@ -29,7 +30,7 @@ const int TILESIZE = 64;
 const int MAP_IMAGE_WIDTH = 3648;
 const int MAP_IMAGE_HEIGHT = 3200;
 const string backgroundMap = "./assets/graphics/tilemap/ground.png";
-const string list_layouts[] = {"./assets/map/map_FloorBlocks.csv", "./assets/map/map_Grass.csv", "./assets/map/map_Objects.csv", "./assets/map/map_Entities.csv"};
+const string list_layouts[] = {"./assets/map/map_FloorBlocks.csv", "./assets/map/map_Grass.csv", "./assets/map/map_Objects.csv"};
 const string list_graphics[] = {"./assets/graphics/grass", "./assets/graphics/objects"};
 const Uint32 GAME_START_TIME = 0;
 const vector<string> POSSIBLE_MOVES = {"up", "down", "left", "right"};
@@ -41,6 +42,12 @@ const int PLAYER_SPEED = 32;
 const float PLAYER_ENERGY = 20;
 const float PLAYER_HEALTH = 100;
 const float ATTACK_COST = 5;
+const float EXPERIANCE_BONUS = 1;
+const float DAMAGE_BONUS = 1;
+const float HEALTH_BONUS = 4;
+const float ENERGY_BONUS = 2;
+const float ACC_ENERGY_BONUS = 0.2;
+const float ACC_HEALTH_BONUS = 0.2;
 const int SCORE_MARGIN = 10;
 const int SCORE_FONT_SIZE = 20;
 const SDL_Color SCORE_FONT_COLOR = WHITE;
@@ -50,10 +57,10 @@ const SDL_Rect HEALTH_BAR = {0,0,400,25};
 const SDL_Rect ENERGY_BAR = {0,30,300,25};
 const SDL_Color HEALTH_COLOR = RED;  
 const SDL_Color ENERGY_COLOR = BLUE;  
-const float HEALTH_ACCELERATE = 20;
-const float ENERGY_ACCELERATE = 20; 
-const Uint32 expectedTime = 3; 
-const float tolerance = 0.05;     
+const float HEALTH_ACCELERATE = 10;
+const float ENERGY_ACCELERATE = 10; 
+const Uint32 expectedTime = 1; 
+const float tolerance = 0.5;     
 
 // ITEM GRAPHIC
 const int ITEM_SIZE = 64;
@@ -73,9 +80,9 @@ const map<string, string> ITEM_PATH =
 // ENTITIES STATUS
 const string ENEMIES_DIRECTORY = "./assets/graphics/monsters/";
 const map<string, map<string, float>> ENEMIES_STAT = {
-    {"bamboo", {{"HEALTH", 10}, {"DAMAGE", 20}, {"SPEED", 16}, {"MOVE TIME", 1}, {"ATTACK TIME", 1}}},
-    {"spirit", {{"HEALTH", 20}, {"DAMAGE", 15}, {"SPEED", 16}, {"MOVE TIME", 1}, {"ATTACK TIME", 1}}},
-    {"squid", {{"HEALTH", 30}, {"DAMAGE", 25}, {"SPEED", 16}, {"MOVE TIME", 1}, {"ATTACK TIME", 1}}},
+    {"bamboo", {{"HEALTH", 10}, {"DAMAGE", 20}, {"SPEED", 4}, {"MOVE TIME", 0.5}, {"ATTACK TIME", 1}}},
+    {"spirit", {{"HEALTH", 20}, {"DAMAGE", 15}, {"SPEED", 4}, {"MOVE TIME", 0.5}, {"ATTACK TIME", 1}}},
+    {"squid", {{"HEALTH", 30}, {"DAMAGE", 25}, {"SPEED", 4}, {"MOVE TIME", 0.5}, {"ATTACK TIME", 1}}},
 };
 const vector<string> ENIMIES_NAME = {"bamboo", "spirit", "squid"};
 const pair<int, int> RANGE_ENEMY_OFF_SET_X = {-5, 5};
@@ -89,4 +96,10 @@ const int ENIMIES_HEALTH_BAR_HEIGHT = 5;
 const int ENTITIES_SPAWN_TIME = 3;
 const vector<int> RANDOM_AMOUNT_ENTITIES = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2};
 const float ENTITIES_SPAWN_TOLERANCE = 0.05;
+
+// GAME MUSIC
+const string GAME_MUSIC_PATH = "./assets/audio/main.ogg";
+const string GAME_HIT_PATH = "./assets/audio/hit.wav";
+const string GAME_HEAL_PATH = "./assets/audio/heal.wav";
+const string GAME_DEATH_PATH = "./assets/audio/death.wav";
 #endif

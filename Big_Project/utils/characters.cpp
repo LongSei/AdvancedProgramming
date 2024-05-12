@@ -115,7 +115,7 @@ pair<float, float> Characters::getMaxStatus() {
 
 void Characters::updateStatus() {
     if (isHealthDecrease == true) {
-        health_time_refill = -2;
+        health_time_refill = -10;
         isHealthDecrease = false;
     }
     else {
@@ -125,7 +125,7 @@ void Characters::updateStatus() {
     }
 
     if (isEnergyDecrease == true) {
-        energy_time_refill = -2;
+        energy_time_refill = -10;
         isEnergyDecrease = false;
     }
     else {
@@ -168,12 +168,12 @@ void Characters::takeDamage(float damage) {
 }
 
 void Characters::takeExp() {
-    experiance += 1;
-    damage += 0.1;
-    health += 1;
-    energy += 1;
-    accEnergy = max(0.1, accEnergy - 0.1);
-    accHealth = max(0.1, accHealth - 0.1);
+    experiance += EXPERIANCE_BONUS;
+    damage += DAMAGE_BONUS;
+    health += HEALTH_BONUS;
+    energy += ENERGY_BONUS;
+    accEnergy = max(ACC_ENERGY_BONUS, accEnergy - ACC_ENERGY_BONUS);
+    accHealth = max(ACC_HEALTH_BONUS, accHealth - ACC_HEALTH_BONUS);
 }
 
 int Characters::getExp() {

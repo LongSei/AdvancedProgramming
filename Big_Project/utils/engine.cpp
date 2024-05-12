@@ -1,7 +1,7 @@
 #include "engine.hpp"
 using namespace std;
 
-void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE, Characters& _mainPlayer) {
+void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, const char* _SCREEN_TITLE, const char* _GAME_MUSIC_PATH, Characters& _mainPlayer) {
     isRunning = false;
     isStopping = false;
     int SCREEN_STATUS = _IS_FULLSCREEN ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_SHOWN;
@@ -24,6 +24,22 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
         SDL_Log("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
         IMG_Quit();
         SDL_Quit();
+        return;
+    }
+
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
+        return;
+    }
+
+    music = Mix_LoadMUS(_GAME_MUSIC_PATH);
+    if (!music) {
+        printf("Failed to load OGG music! SDL_mixer Error: %s\n", Mix_GetError());
+        return;
+    }
+
+    if (Mix_PlayMusic(music, -1) == -1) {
+        printf("Failed to play music! SDL_mixer Error: %s\n", Mix_GetError());
         return;
     }
 
@@ -59,6 +75,8 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
         }
     }
 
+    loadSoundEffect();
+
     IS_FULLSCREEN = _IS_FULLSCREEN;
     SCREEN_HEIGHT = _SCREEN_HEIGHT;
     SCREEN_WIDTH = _SCREEN_WIDTH;
@@ -68,13 +86,18 @@ void Game::init(bool _IS_FULLSCREEN, int _SCREEN_WIDTH, int _SCREEN_HEIGHT, cons
 }
 
 void Game::playerClearEntity() {
-    cout << game_entities.size() << endl;
     if (game_entities.size() == 0) {
         for (int amount = 1; amount <= amount_entities; amount++) {
             createEntities();
         }
         amount_entities += EssentialFunction().choice(RANDOM_AMOUNT_ENTITIES);
     }
+}
+
+void Game::loadSoundEffect() {
+    game_music["GAME_HIT"] = Mix_LoadWAV(GAME_HIT_PATH.c_str());
+    game_music["GAME_HEAL"] = Mix_LoadWAV(GAME_HEAL_PATH.c_str());
+    game_music["GAME_DEATH"] = Mix_LoadWAV(GAME_DEATH_PATH.c_str());
 }
 
 void Game::createEntities() {
@@ -184,8 +207,10 @@ void Game::handleEvents(SDL_Event event) {
                         SDL_Rect enemyRect = {enemyCoordinate.x, enemyCoordinate.y, TILESIZE, TILESIZE};
                         if (SDL_HasIntersection(&attackedRect, &enemyRect)) {
                             enemy.takeDamage(mainPlayer.getDamage());
+                            Mix_PlayChannel( -1, game_music["GAME_HIT"], 0 );
                             if (enemy.getStatus() <= 0) {
                                 game_entities.erase(game_entities.begin() + enemyIndex);
+                                Mix_PlayChannel( -1, game_music["GAME_DEATH"], 0 );
                                 mainPlayer.takeExp();
                             }
                         }
@@ -259,6 +284,7 @@ void Game::entitiesHandle() {
                     int remain_attack = current_time % attack_interval_ms;
                     if (remain_attack <= tolerance_ms || (attack_interval_ms - remain_attack) <= tolerance_ms) {
                         enemy.send_attack(mainPlayer);
+                        startTime = SDL_GetTicks();
                     }
                     enemy.undo_move(move_way);
                     break;
@@ -281,7 +307,7 @@ void Game::renderUpdate() {
         ScreenCamera.mapDraw(game_map);
         ScreenCamera.playerDraw(mainPlayer);
         entitiesHandle();
-        ScreenCamera.status_bar(mainPlayer, startTime);
+        ScreenCamera.status_bar(mainPlayer, game_music["GAME_HEAL"], startTime);
         ScreenCamera.score_show(mainPlayer);
     }
 }
@@ -289,6 +315,8 @@ void Game::renderUpdate() {
 void Game::clean() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    Mix_FreeMusic(music);
+    Mix_CloseAudio();
     IMG_Quit();
     SDL_Quit();
 }
@@ -350,7 +378,7 @@ void CameraScreen::calculateVisibleArea(const SDL_Point& center) {
     floor_rect = {max(0, min(MAP_WIDTH - half_screen.x * 2, center.x - half_screen.x)), max(0, min(MAP_HEIGHT - half_screen.y * 2, center.y - half_screen.y)), half_screen.x * 2, half_screen.y * 2};
 }
 
-void CameraScreen::status_bar(Characters& player, Uint32 startTime) {
+void CameraScreen::status_bar(Characters& player, Mix_Chunk* heal_sound, Uint32 startTime) {
     pair<float, float> currentStatus = player.getStatus();
     float currentHealth = currentStatus.first;
     float currentEnergy = currentStatus.second;
@@ -362,7 +390,12 @@ void CameraScreen::status_bar(Characters& player, Uint32 startTime) {
     Uint32 currentTime = SDL_GetTicks();
     Uint32 elapsedTime = currentTime - startTime;
     if ((elapsedTime % expectedTime <= tolerance) || (elapsedTime % expectedTime >= (expectedTime - tolerance))){
+        pair<float, float> prev_status = player.getStatus();
         player.updateStatus();
+        pair<float, float> new_status = player.getStatus();
+        if (prev_status.first != new_status.first && prev_status.second != new_status.second && new_status.first == maxHealth && new_status.second == maxEnergy) {
+            Mix_PlayChannel( -1, heal_sound, 0 );
+        }
     }
     // DETAIL
     float ratio = currentHealth / maxHealth;

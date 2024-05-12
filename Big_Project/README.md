@@ -5,25 +5,14 @@
 - MSSV: 23021615
 - Mô tả: Game nhập vai đánh quái.
 - Tính năng nổi bật: 
-   - Nhiều item.
-   - Tính năng máu, năng lượng, kinh nghiệm. 
-   - Hiệu ứng khi đánh nhau. 
-- Ngưỡng điểm:
-
-### Language:
-- C++ 
-
-### Tools: 
-- SDL2
-- SDL_image
-
-### Installation
-1.
-   ```sh
-   $ git clone https://github.com/LongSei/AdvancedProgramming.git
-   ```
-2.
-   ```sh
-   $ cd Big_Project
-   $ make
-   ```
+   - Nhân vật:
+      - Tính năng máu, năng lượng, kinh nghiệm. 
+      - Tăng điểm để tăng thêm các chỉ số. 
+      - Khả năng hồi máu và năng lượng dựa trên hàm số $e^{\frac{time}{\sigma} - 1}$
+   - Quái: 
+      - Quái có khả năng tìm đường đi đến vị trí người chơi dựa trên khoảng cách
+      - Hiển thị lượng máu của quái.
+   - Hình ảnh và âm thanh: 
+      - Hình ảnh Pixel
+      - Âm thanh cho từng cử chỉ của nhân vật
+      - Âm thanh nền

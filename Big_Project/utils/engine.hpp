@@ -21,7 +21,7 @@ class CameraScreen {
         void playerDraw(Characters& player);
         void entitiesDraw(Entities& enemy);
         void calculateVisibleArea(const SDL_Point& center);
-        void status_bar(Characters& player, Uint32 startTime); 
+        void status_bar(Characters& player, Mix_Chunk* heal_sound, Uint32 startTime); 
         void score_show(Characters& player);
     private: 
         int MAP_WIDTH;
@@ -34,7 +34,7 @@ class CameraScreen {
 
 class Game {
     public:
-        void init(bool fullscreen, int width, int height, const char* title, Characters& _mainPlayer);
+        void init(bool fullscreen, int width, int height, const char* title, const char* _game_music_path, Characters& _mainPlayer);
         void handleEvents(SDL_Event event);
         void renderUpdate();
         void clean();
@@ -44,6 +44,7 @@ class Game {
         void playerHandle(const string& move_back);
         void entitiesHandle();
         bool stopping();
+        void loadSoundEffect();
         void gameOverScreen();
         void playerClearEntity();
         SDL_Renderer* renderer;
@@ -54,6 +55,7 @@ class Game {
         Uint32 startTime;
         SDL_Window* window;
 
+        map<string, Mix_Chunk*> game_music;
         vector<vector<vector<Tile> > > game_map;
         vector<Entities> game_entities;
         int amount_entities = 1;
@@ -64,6 +66,7 @@ class Game {
 
         CameraScreen ScreenCamera;
         Characters mainPlayer;
+        Mix_Music* music;
 };
 
 class DropdownMenu {
